@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="run" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="gcnf" />
+    <working_directory value="$PROJECT_DIR$" />
+    <go_parameters value="-o dist/gcnf" />
+    <kind value="PACKAGE" />
+    <package value="gcnf" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <output_directory value="$PROJECT_DIR$/dist" />
+    <method v="2" />
+  </configuration>
+</component>

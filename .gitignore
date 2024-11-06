@@ -1,0 +1,6 @@
+dist/
+/client_secret.json
+.env
+.env.prod
+.env.unittest
+temp/
