@@ -15,7 +15,7 @@ curl https://raw.githubusercontent.com/NeuralInnovations/gcnf/refs/heads/master/
 **ZSH**
 
 ```zsh
-curl https://raw.githubusercontent.com/NeuralInnovations/gcnfv/refs/heads/master/install.sh | zsh
+curl https://raw.githubusercontent.com/NeuralInnovations/gcnf/refs/heads/master/install.sh | zsh
 ```
 
 ---
