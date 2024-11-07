@@ -161,13 +161,16 @@ func ResolveValue(envVars map[string]string, value string, resolveGCNFURL func(s
 	// Replace $VAR and ${VAR}
 	value = basicPattern.ReplaceAllStringFunc(value, func(s string) string {
 		varName := s[1:]
-		val := envVars[varName]
-		if strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"") {
-			val = val[1 : len(val)-1]
+		val, ok := envVars[varName]
+		if ok {
+			if strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"") {
+				val = val[1 : len(val)-1]
+			}
+			if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'") {
+				val = val[1 : len(val)-1]
+			}
 		}
-		if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'") {
-			val = val[1 : len(val)-1]
-		}
+		val = os.Getenv(varName)
 		return val
 	})
 
@@ -183,6 +186,8 @@ func ResolveValue(envVars map[string]string, value string, resolveGCNFURL func(s
 			if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'") {
 				val = val[1 : len(val)-1]
 			}
+			return val
+		} else if val := os.Getenv(varName); val != "" {
 			return val
 		} else if defaultValue != "" {
 			return defaultValue
