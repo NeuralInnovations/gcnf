@@ -57,7 +57,7 @@ jobs:
       os: ubuntu-24.04-arm64
       ext: ""
       env: |
-        GOCACHE='/home/runner/.cache/go-build'
+        GOCACHE=/home/gocache
     secrets: inherit
   #----------------------------------------------------------------
   build_linux_amd64:
