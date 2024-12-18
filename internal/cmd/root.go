@@ -36,8 +36,8 @@ func Execute(projectPropertiesContent string, clientSecrets []byte) {
 		Long: fmt.Sprintf(`%s %s
 Manage and search Google Sheets data.
 Environment variables:
-[%s, %s, %s, %s, or use %s]`,
-			projectName, projectVersion, config.EnvGoogleCredentialBase64, config.EnvGoogleSheetID, config.EnvGoogleSheetName, config.EnvStoreConfigFile, config.EnvToken),
+[%s, %s, %s, or use %s]`,
+			projectName, projectVersion, config.EnvGoogleCredentialBase64, config.EnvGoogleSheetID, config.EnvStoreConfigFile, config.EnvToken),
 	}
 
 	// Initialize root command
@@ -53,6 +53,7 @@ Environment variables:
 	rootCmd.AddCommand(readCmd)
 	rootCmd.AddCommand(injectCmd)
 	rootCmd.AddCommand(tokenCmd)
+	rootCmd.AddCommand(configCmd)
 
 	// execute commands
 	if err := rootCmd.Execute(); err != nil {
