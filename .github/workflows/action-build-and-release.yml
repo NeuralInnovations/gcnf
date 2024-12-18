@@ -15,9 +15,6 @@ on:
         required: true
         type: string
 
-env:
-  GOCACHE: ./gocache
-
 jobs:
   build:
     name: 🧱 Build 🧱
