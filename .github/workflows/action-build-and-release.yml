@@ -14,6 +14,14 @@ on:
       os:
         required: true
         type: string
+      go_version:
+        required: false
+        default: "^1.23.2"
+        type: string
+      env:
+        required: false
+        default: ""
+        type: string
 
 jobs:
   build:
@@ -36,14 +44,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # -----------------------------------------------------------
+      # Parse and export environment variables
+      # -----------------------------------------------------------
+      - name: Set environment variables
+        run: |
+          echo "${{ inputs.env }}" | while IFS= read -r line; do
+            if [ -n "$line" ]; then
+              echo "Exporting $line"
+              export "$line"
+              echo "$line" >> $GITHUB_ENV
+            fi
+          done
+
       #--------------------------------------------------------------------
       # Install Go
       #--------------------------------------------------------------------
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: "^1.23.2"
-          cache: 'false'
+          go-version: ${{ inputs.go_version }}
       #--------------------------------------------------------------------
       - run: go version
       #--------------------------------------------------------------------

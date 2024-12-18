@@ -7,14 +7,19 @@ on:
       - master
   workflow_dispatch:
 
+env:
+  GO_VERSION: 1.23.4
+
 jobs:
   #----------------------------------------------------------------
   prepare:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         shell: bash
     outputs:
+      go_version: ${{ env.GO_VERSION }}
       build: ${{ github.run_number }}
       version: ${{ steps.project.outputs.version }}-${{ github.run_number }}
       name: ${{ steps.project.outputs.name }}
@@ -24,6 +29,9 @@ jobs:
       #------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
+
+      #------------------------------------------------------------
+      # Set up Project
       #------------------------------------------------------------
       - name: Project
         id: project
@@ -31,6 +39,8 @@ jobs:
           echo "name=$(./scripts/get.property.sh --property name --file ./project.properties)" >> "$GITHUB_OUTPUT"
           echo "version=$(./scripts/get.property.sh --property version --file ./project.properties)" >> "$GITHUB_OUTPUT"
 
+      #------------------------------------------------------------
+      # Info
       #------------------------------------------------------------
       - name: 📥 Info 📥
         run: |
@@ -45,6 +55,9 @@ jobs:
           echo "| sha           | ${{ github.sha }}                  |" >> $GITHUB_STEP_SUMMARY | cat
           echo "| build         | ${{ github.run_number }}           |" >> $GITHUB_STEP_SUMMARY | cat
           echo "---" >> $GITHUB_STEP_SUMMARY
+
+  #----------------------------------------------------------------
+  # BUILD
   #----------------------------------------------------------------
   build_linux_arm64:
     name: 🧱 Build For Linux 🧱
@@ -56,6 +69,11 @@ jobs:
       os_name: linux
       os: ubuntu-24.04-arm64
       ext: ""
+      go_version: ${{ needs.prepare.outputs.go_version }}
+      env: |
+        GOPATH=/root/actions-runner/_work/_tool/go/${{ needs.prepare.outputs.go_version }}/arm64
+        GOCACHE=$GOPATH/cache
+        GOMODCACHE=$GOPATH/pkg/mod
     secrets: inherit
   #----------------------------------------------------------------
   build_linux_amd64:
@@ -67,6 +85,7 @@ jobs:
       file: gcnf-linux-amd64
       os_name: linux
       os: ubuntu-24.04
+      go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ""
     secrets: inherit
   #----------------------------------------------------------------
@@ -79,6 +98,7 @@ jobs:
       file: gcnf-windows.exe
       os_name: windows
       os: windows-latest
+      go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ".exe"
     secrets: inherit
   #----------------------------------------------------------------
@@ -91,6 +111,7 @@ jobs:
       file: gcnf-darwin-arm64
       os_name: darwin-arm64
       os: macos-14
+      go_version: ${{ needs.prepare.outputs.go_version}}
       ext: ""
     secrets: inherit
   #----------------------------------------------------------------
@@ -103,8 +124,12 @@ jobs:
       file: gcnf-darwin-amd64
       os_name: darwin-amd64
       os: macos-13
+      go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ""
     secrets: inherit
+
+  #----------------------------------------------------------------
+  # RELEASE
   #----------------------------------------------------------------
   release:
     name: 🚀 Release 🚀
