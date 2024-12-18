@@ -54,7 +54,7 @@ jobs:
     with:
       file: gcnf-linux-arm64
       os_name: linux
-      os: ubuntu-22.04-arm64
+      os: ubuntu-24.04-arm64
       ext: ""
     secrets: inherit
   #----------------------------------------------------------------
@@ -66,7 +66,7 @@ jobs:
     with:
       file: gcnf-linux-amd64
       os_name: linux
-      os: ubuntu-22.04
+      os: ubuntu-24.04
       ext: ""
     secrets: inherit
   #----------------------------------------------------------------

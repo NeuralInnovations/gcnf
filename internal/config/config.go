@@ -15,7 +15,6 @@ import (
 const (
 	EnvGoogleCredentialBase64 = "GCNF_GOOGLE_CREDENTIAL_BASE64"
 	EnvGoogleSheetID          = "GCNF_GOOGLE_SHEET_ID"
-	EnvGoogleSheetName        = "GCNF_GOOGLE_SHEET_NAME"
 	EnvStoreConfigFile        = "GCNF_STORE_CONFIG_FILE"
 	EnvToken                  = "GCNF_TOKEN"
 )
@@ -23,10 +22,11 @@ const (
 type Configs struct {
 	GoogleCredentialBase64   string
 	GoogleSheetID            string
-	GoogleSheetName          string
 	ConfigFile               string
 	Scopes                   []string
 	UserTokenFile            string
+	UserGoogleSheetIDFile    string
+	UserStoreConfigFile      string
 	TokenValue               string
 	GoogleClientTokenContent []byte
 }
@@ -43,6 +43,8 @@ func NewConfigs(googleClientTokenContent []byte) *Configs {
 	c := &Configs{
 		Scopes:                   []string{"https://www.googleapis.com/auth/spreadsheets.readonly"},
 		UserTokenFile:            utils.NormalizePath("~/.gcnf/.token"),
+		UserGoogleSheetIDFile:    utils.NormalizePath("~/.gcnf/.google_sheet_id"),
+		UserStoreConfigFile:      utils.NormalizePath("~/.gcnf/.gcnf_config.json"),
 		GoogleClientTokenContent: googleClientTokenContent,
 	}
 
@@ -57,10 +59,11 @@ func NewConfigs(googleClientTokenContent []byte) *Configs {
 	}
 	if tkn == nil {
 		tkn = &ProjectToken{}
+		tkn.GoogleSheetID, _ = utils.LoadFileContentAsString(c.UserGoogleSheetIDFile, true)
+		tkn.StoreConfigFile, _ = utils.LoadFileContentAsString(c.UserStoreConfigFile, true)
 	}
 	c.GoogleCredentialBase64 = utils.Coalesce(os.Getenv(EnvGoogleCredentialBase64), tkn.GoogleCredBase64)
 	c.GoogleSheetID = utils.Coalesce(os.Getenv(EnvGoogleSheetID), tkn.GoogleSheetID)
-	c.GoogleSheetName = utils.Coalesce(os.Getenv(EnvGoogleSheetName), tkn.GoogleSheetName, "Env")
 	c.ConfigFile = utils.Coalesce(os.Getenv(EnvStoreConfigFile), tkn.StoreConfigFile, "./gcnf_config.json")
 	c.ConfigFile = utils.NormalizePath(c.ConfigFile)
 

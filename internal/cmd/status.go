@@ -28,7 +28,6 @@ func statusCommand(format string) {
 		"owner":                 projectOwner,
 		"repository":            projectRepository,
 		"google_sheet_id":       configs.GoogleSheetID,
-		"google_sheet_name":     configs.GoogleSheetName,
 		"storage_config_file":   configs.ConfigFile,
 		"credentials_status":    configs.GetCredentialsStatus(),
 		"user_token_file":       configs.GetUserTokenStatus(),

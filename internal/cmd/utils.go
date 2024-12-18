@@ -13,9 +13,6 @@ func checkRequirements() {
 	if configs.GoogleSheetID == "" {
 		log.Fatalf("%s environment variable or --google_sheet_id parameter is not set.", config.EnvGoogleSheetID)
 	}
-	if configs.GoogleSheetName == "" {
-		log.Fatalf("%s environment variable or --google_sheet_name parameter is not set.", config.EnvGoogleSheetName)
-	}
 	if configs.ConfigFile == "" || configs.ConfigFile == "." {
 		log.Fatalf("%s environment variable or --config_file parameter is not set.", config.EnvStoreConfigFile)
 	}
