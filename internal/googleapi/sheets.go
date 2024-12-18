@@ -31,7 +31,7 @@ func loadValue(sheet, env, category, name string, configs *config.Configs) strin
 		if !utils.FileExists(configs.ConfigFile) {
 			loadSheet(sheet, env, configs)
 		}
-		data = utils.GetFileContent(configs.ConfigFile)
+		data = utils.LoadFileContentAsJson(configs.ConfigFile)
 		if data == nil {
 			log.Fatal("No data found.")
 		}

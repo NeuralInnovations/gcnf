@@ -52,7 +52,25 @@ func DeleteFile(path string) bool {
 	return false
 }
 
-func GetFileContent(path string) map[string]interface{} {
+func LoadFileContentAsString(path string, trim bool) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	var content string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		content += scanner.Text() + "\n"
+	}
+	// Trim the content if necessary
+	if trim {
+		content = strings.TrimSpace(content)
+	}
+	return content, nil
+}
+
+func LoadFileContentAsJson(path string) map[string]interface{} {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -267,4 +285,17 @@ func TokenFromFile(file string) (*oauth2.Token, error) {
 	tok := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(tok)
 	return tok, err
+}
+
+func WriteStringToFile(file string, value string) {
+	EnsureDirectoryExists(filepath.Dir(file))
+	f, err := os.Create(file)
+	if err != nil {
+		log.Fatalf("Failed to create file: %v", err)
+	}
+	defer f.Close()
+	_, err = f.WriteString(value)
+	if err != nil {
+		log.Fatalf("Failed to write to file: %v", err)
+	}
 }
