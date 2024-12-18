@@ -14,10 +14,12 @@ jobs:
   #----------------------------------------------------------------
   prepare:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         shell: bash
     outputs:
+      go_version: ${{ env.GO_VERSION }}
       build: ${{ github.run_number }}
       version: ${{ steps.project.outputs.version }}-${{ github.run_number }}
       name: ${{ steps.project.outputs.name }}
@@ -67,9 +69,9 @@ jobs:
       os_name: linux
       os: ubuntu-24.04-arm64
       ext: ""
-      go_version: ${{ env.GO_VERSION }}
+      go_version: ${{ needs.prepare.outputs.go_version }}
       env: |
-        GOPATH=/root/actions-runner/_work/_tool/go/${{ env.GO_VERSION }}/arm64
+        GOPATH=/root/actions-runner/_work/_tool/go/${{ needs.prepare.outputs.go_version }}/arm64
         GOCACHE=$GOPATH/cache
         GOMODCACHE=$GOPATH/pkg/mod
     secrets: inherit
@@ -83,7 +85,7 @@ jobs:
       file: gcnf-linux-amd64
       os_name: linux
       os: ubuntu-24.04
-      go_version: ${{ env.GO_VERSION }}
+      go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ""
     secrets: inherit
   #----------------------------------------------------------------
@@ -96,7 +98,7 @@ jobs:
       file: gcnf-windows.exe
       os_name: windows
       os: windows-latest
-      go_version: ${{ env.GO_VERSION }}
+      go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ".exe"
     secrets: inherit
   #----------------------------------------------------------------
@@ -109,7 +111,7 @@ jobs:
       file: gcnf-darwin-arm64
       os_name: darwin-arm64
       os: macos-14
-      go_version: ${{ env.GO_VERSION }}
+      go_version: ${{ needs.prepare.outputs.go_version}}
       ext: ""
     secrets: inherit
   #----------------------------------------------------------------
@@ -122,7 +124,7 @@ jobs:
       file: gcnf-darwin-amd64
       os_name: darwin-amd64
       os: macos-13
-      go_version: ${{ env.GO_VERSION }}
+      go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ""
     secrets: inherit
 
