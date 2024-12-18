@@ -14,6 +14,10 @@ on:
       os:
         required: true
         type: string
+      env:
+        required: false
+        default: ""
+        type: string
 
 jobs:
   build:
@@ -35,6 +39,17 @@ jobs:
       # -----------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # -----------------------------------------------------------
+      # Parse and export environment variables
+      # -----------------------------------------------------------
+      - name: Set environment variables
+        run: |
+          echo "${{ inputs.env }}" | while IFS= read -r line; do
+            echo "Exporting $line"
+            export "$line"
+            echo "$line" >> $GITHUB_ENV
+          done
 
       #--------------------------------------------------------------------
       # Install Go
