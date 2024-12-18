@@ -16,8 +16,7 @@ on:
         type: string
 
 env:
-  HOME: /github/home
-  GOCACHE: /tmp/gocache
+  GOCACHE: ./gocache
 
 jobs:
   build:
