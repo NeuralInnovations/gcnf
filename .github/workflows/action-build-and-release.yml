@@ -46,9 +46,11 @@ jobs:
       - name: Set environment variables
         run: |
           echo "${{ inputs.env }}" | while IFS= read -r line; do
-            echo "Exporting $line"
-            export "$line"
-            echo "$line" >> $GITHUB_ENV
+            if [ -n "$line" ]; then
+              echo "Exporting $line"
+              export "$line"
+              echo "$line" >> $GITHUB_ENV
+            fi
           done
 
       #--------------------------------------------------------------------
