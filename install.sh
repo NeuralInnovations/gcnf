@@ -1,9 +1,11 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 # Set the repository owner and name
 OWNER="NeuralInnovations"
 REPOSITORY="gcnf"
 CPU_ARCH=$(arch)
+RETRY_COUNT=3
+RETRY_DELAY=3
 
 # Determine the current platform
 platform=""
@@ -27,8 +29,22 @@ else
     exit 1
 fi
 
-# Get the latest release information using GitHub API
-release_info=$(curl -s "https://api.github.com/repos/$OWNER/$REPOSITORY/releases/latest")
+# Get the latest release information using GitHub API, with retries
+for i in $(seq 1 $RETRY_COUNT); do
+    release_info=$(curl -s "https://api.github.com/repos/$OWNER/$REPOSITORY/releases/latest")
+    if [[ -n "$release_info" ]]; then
+        break
+    fi
+    if [[ $i -lt $RETRY_COUNT ]]; then
+        echo "Attempt $i failed to fetch release info. Retrying in $RETRY_DELAY seconds..."
+        sleep "$RETRY_DELAY"
+    fi
+done
+
+if [[ -z "$release_info" ]]; then
+    echo "Failed to fetch release info after $RETRY_COUNT attempts."
+    exit 1
+fi
 
 # Determine the filename for the current platform
 filename="gcnf-$platform"
