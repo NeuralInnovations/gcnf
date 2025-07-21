@@ -5,7 +5,7 @@ OWNER="NeuralInnovations"
 REPOSITORY="gcnf"
 CPU_ARCH=$(arch)
 RETRY_COUNT=3
-RETRY_DELAY=3
+RETRY_DELAY=5
 
 # Determine the current platform
 platform=""
@@ -38,6 +38,7 @@ for i in $(seq 1 $RETRY_COUNT); do
     if [[ $i -lt $RETRY_COUNT ]]; then
         echo "Attempt $i failed to fetch release info. Retrying in $RETRY_DELAY seconds..."
         sleep "$RETRY_DELAY"
+        ((RETRY_DELAY *= 2))  # Exponential backoff
     fi
 done
 
@@ -54,7 +55,19 @@ download_url=$(echo "$release_info" | grep "browser_download_url" | grep "$filen
 
 # Check if the download URL was found
 if [[ -z "$download_url" ]]; then
-    echo "Download URL for platform $platform not found."
+    echo "------------------------------"
+    echo "Error: Unable to find download URL for platform: $platform"
+    echo "------------------------------"
+    echo "Arch $CPU_ARCH"
+    echo "Download URL for platform: $platform not found, file name: $filename."
+    echo "Content of the latest release:"
+    echo "'"
+    echo "$release_info"
+    echo "'"
+    echo "Available platforms in the last releases:"
+    echo $("$release_info" | grep "browser_download_url")
+    echo "Please check the repository for available releases."
+    echo "------------------------------"
     exit 1
 fi
 
