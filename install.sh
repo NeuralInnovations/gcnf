@@ -29,32 +29,13 @@ else
     exit 1
 fi
 
-# Get the latest release information using GitHub API, with retries
-for i in $(seq 1 $RETRY_COUNT); do
-    release_info=$(curl -s "https://api.github.com/repos/$OWNER/$REPOSITORY/releases/latest")
-    if [[ -n "$release_info" ]]; then
-        break
-    fi
-    if [[ $i -lt $RETRY_COUNT ]]; then
-        echo "Attempt $i failed to fetch release info. Retrying in $RETRY_DELAY seconds..."
-        sleep "$RETRY_DELAY"
-        ((RETRY_DELAY *= 2))  # Exponential backoff
-    fi
-done
-
-if [[ -z "$release_info" ]]; then
-    echo "Failed to fetch release info after $RETRY_COUNT attempts."
-    exit 1
-fi
-
 # Determine the filename for the current platform
 filename="gcnf-$platform"
 
-# Extract the download URL for the specific platform binary
-download_url=$(echo "$release_info" | grep "browser_download_url" | grep "$filename" | cut -d '"' -f 4)
+download_url="https://github.com/$OWNER/$REPOSITORY/releases/latest/download/$filename"
 
 # Check if the download URL was found
-if [[ -z "$download_url" ]]; then
+curl -L -o gcnf "$download_url" || {
     echo "------------------------------"
     echo "Error: Unable to find download URL for platform: $platform"
     echo "------------------------------"
@@ -69,7 +50,7 @@ if [[ -z "$download_url" ]]; then
     echo "Please check the repository for available releases."
     echo "------------------------------"
     exit 1
-fi
+}
 
 # Download the binary
 echo "Downloading $filename..."
