@@ -1,5 +1,6 @@
 dist/
 /client_secret.json
+/service_account.json
 .env
 .env.prod
 .env.unittest
