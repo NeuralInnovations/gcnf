@@ -69,9 +69,9 @@ jobs:
       ext: ""
       go_version: ${{ needs.prepare.outputs.go_version }}
       env: |
-        GOPATH=/root/actions-runner/_work/_tool/go/${{ needs.prepare.outputs.go_version }}/arm64
-        GOCACHE=$GOPATH/cache
-        GOMODCACHE=$GOPATH/pkg/mod
+        GOPATH=/root/actions-runner/_work/go
+        GOCACHE=/root/actions-runner/_work/go/cache
+        GOMODCACHE=/root/actions-runner/_work/go/pkg/mod
     secrets: inherit
   #----------------------------------------------------------------
   build_linux_amd64:
