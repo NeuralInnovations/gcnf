@@ -121,7 +121,7 @@ jobs:
     with:
       file: gcnf-darwin-amd64
       os_name: darwin-amd64
-      os: macos-13
+      os: macos-14
       go_version: ${{ needs.prepare.outputs.go_version }}
       ext: ""
     secrets: inherit
