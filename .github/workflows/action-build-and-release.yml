@@ -16,7 +16,7 @@ on:
         type: string
       go_version:
         required: false
-        default: "^1.23.2"
+        default: "^1.25.0"
         type: string
       env:
         required: false
@@ -48,8 +48,10 @@ jobs:
       # Parse and export environment variables
       # -----------------------------------------------------------
       - name: Set environment variables
+        env:
+          INPUT_ENV: ${{ inputs.env }}
         run: |
-          echo "${{ inputs.env }}" | while IFS= read -r line; do
+          echo "$INPUT_ENV" | while IFS= read -r line; do
             if [ -n "$line" ]; then
               echo "Exporting $line"
               export "$line"
@@ -72,8 +74,10 @@ jobs:
       # client_secret.json
       #--------------------------------------------------------------------
       - name: Client secrets
+        env:
+          CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          echo '${{ secrets.GOOGLE_CLIENT_SECRET }}' > ./client_secret.json
+          echo "$CLIENT_SECRET" > ./client_secret.json
 
       #--------------------------------------------------------------------
       # Download dependencies
@@ -103,5 +107,5 @@ jobs:
           path: dist/${{ inputs.file }}
       #--------------------------------------------------------------------
       - name: Clean Up
-        run: rm -rf build, dist
+        run: rm -rf build dist
       #--------------------------------------------------------------------

@@ -2,13 +2,16 @@ package googleapi
 
 import (
 	"fmt"
-	"gcnf/internal/config"
-	"gcnf/internal/utils"
 	"os"
 	"strings"
+
+	"gcnf/internal/config"
+	"gcnf/internal/utils"
 )
 
-func InjectCommand(templatePath string, skipComments bool, configs *config.Configs) error {
+// InjectCommand processes a template file, resolving environment variables and gcnf:// URLs.
+// If outputPath is non-empty, the result is written to that file; otherwise it is printed to stdout.
+func InjectCommand(templatePath string, skipComments bool, outputPath string, configs *config.Configs) error {
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
 		return err
@@ -36,6 +39,13 @@ func InjectCommand(templatePath string, skipComments bool, configs *config.Confi
 			outputLines = append(outputLines, line)
 		}
 	}
-	fmt.Println(strings.Join(outputLines, "\n"))
+	output := strings.Join(outputLines, "\n")
+	if outputPath != "" {
+		if err := os.WriteFile(outputPath, []byte(output+"\n"), 0644); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+	} else {
+		fmt.Println(output)
+	}
 	return nil
 }

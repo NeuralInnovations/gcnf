@@ -2,12 +2,10 @@ package googleapi
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"gcnf/internal/config"
-	"gcnf/internal/utils"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"log"
 	"net"
 	"net/http"
@@ -15,11 +13,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"time"
+
+	"gcnf/internal/config"
+	"gcnf/internal/utils"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
+// GoogleLoginCommand initiates the OAuth2 login flow and saves the token to disk.
 func GoogleLoginCommand(configs *config.Configs) {
-	_ = context.Background()
-
 	clientSecret := configs.GetClientSecret()
 
 	conf, err := google.ConfigFromJSON(clientSecret, configs.Scopes...)
@@ -32,17 +36,22 @@ func GoogleLoginCommand(configs *config.Configs) {
 		log.Fatalf("Unable to get token from web: %v", err)
 	}
 
-	utils.EnsureDirectoryExists(filepath.Dir(configs.UserTokenFile))
+	if err := utils.EnsureDirectoryExists(filepath.Dir(configs.UserTokenFile)); err != nil {
+		log.Fatalf("Unable to create token directory: %v", err)
+	}
 
 	f, err := os.OpenFile(configs.UserTokenFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Fatalf("Unable to cache oauth token: %v", err)
 	}
 	defer f.Close()
-	json.NewEncoder(f).Encode(tok)
+	if err := json.NewEncoder(f).Encode(tok); err != nil {
+		log.Fatalf("Failed to save oauth token: %v", err)
+	}
 	fmt.Println("Login successful.")
 }
 
+// openBrowser opens the given URL in the user's default browser.
 func openBrowser(url string) error {
 	var cmd string
 	var args []string
@@ -50,67 +59,83 @@ func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "darwin":
 		cmd = "open"
+		args = []string{url}
 	case "windows":
 		cmd = "rundll32"
 		args = []string{"url.dll,FileProtocolHandler", url}
-	default: // "linux" and others
+	default:
 		cmd = "xdg-open"
+		args = []string{url}
 	}
-
-	if cmd == "rundll32" {
-		args = append(args, url)
-		return exec.Command(cmd, args...).Start()
-	} else {
-		args = append(args, url)
-		return exec.Command(cmd, args...).Start()
-	}
+	return exec.Command(cmd, args...).Start()
 }
 
-func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
-	// Set up a local server to receive the authorization code
-	listener, err := net.Listen("tcp", "localhost:0") // Use a random available port
+func getTokenFromWeb(oauthConfig *oauth2.Config) (*oauth2.Token, error) {
+	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		return nil, fmt.Errorf("could not start local server: %v", err)
 	}
-	defer listener.Close()
 
-	// Update the redirect URL to the local server's address
 	redirectURL := fmt.Sprintf("http://%s/", listener.Addr().String())
-	config.RedirectURL = redirectURL
+	oauthConfig.RedirectURL = redirectURL
 
-	// Generate the authorization URL
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	// Generate random state for CSRF protection
+	stateBytes := make([]byte, 16)
+	if _, err := rand.Read(stateBytes); err != nil {
+		listener.Close()
+		return nil, fmt.Errorf("could not generate state token: %v", err)
+	}
+	state := base64.URLEncoding.EncodeToString(stateBytes)
 
-	// Open the authorization URL in the user's default browser
+	authURL := oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+
 	fmt.Println("Opening browser for authorization...")
-	err = openBrowser(authURL)
-	if err != nil {
+	if err := openBrowser(authURL); err != nil {
 		fmt.Printf("Please open the following URL in your browser:\n%v\n", authURL)
 	}
 
-	// Channel to receive the authorization code
-	codeCh := make(chan string)
+	codeCh := make(chan string, 1)
+	errCh := make(chan error, 1)
 
-	// Start a server to handle the callback
+	// Use a local ServeMux to avoid polluting the global DefaultServeMux
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("state") != state {
+			http.Error(w, "Invalid state parameter", http.StatusBadRequest)
+			errCh <- fmt.Errorf("invalid OAuth state parameter")
+			return
+		}
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "Authorization code not found", http.StatusBadRequest)
+			errCh <- fmt.Errorf("authorization code not found in callback")
+			return
+		}
+		fmt.Fprintf(w, "Authorization successful. You can close this window.")
+		codeCh <- code
+	})
+
+	server := &http.Server{Handler: mux}
 	go func() {
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// Get the authorization code from the query parameters
-			code := r.URL.Query().Get("code")
-			if code == "" {
-				http.Error(w, "Authorization code not found", http.StatusBadRequest)
-				return
-			}
-			fmt.Fprintf(w, "Authorization successful. You can close this window.")
-			codeCh <- code
-		})
-		http.Serve(listener, nil)
+		if err := server.Serve(listener); err != http.ErrServerClosed {
+			errCh <- err
+		}
 	}()
 
-	// Wait for the authorization code
-	code := <-codeCh
+	var code string
+	select {
+	case code = <-codeCh:
+	case err := <-errCh:
+		server.Close()
+		return nil, err
+	}
 
-	// Exchange the authorization code for an access token
-	tok, err := config.Exchange(context.Background(), code)
+	// Gracefully shut down the server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+
+	tok, err := oauthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		return nil, fmt.Errorf("could not exchange token: %v", err)
 	}

@@ -5,11 +5,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Get Command
 var getCmd = &cobra.Command{
 	Use:     "get",
 	Aliases: []string{"g"},
 	Short:   "Get a specific value in the loaded data",
+	Long:    `Retrieve a specific configuration value from Google Sheets by sheet, environment, category, and name.`,
+	Example: `  gcnf get --sheet Env --env staging --category Database --name Host
+  gcnf g -s Env -e dev -c Elastic -n Url`,
 	Run: func(cmd *cobra.Command, args []string) {
 		sheet, _ := cmd.Flags().GetString("sheet")
 		env, _ := cmd.Flags().GetString("env")

@@ -1,17 +1,21 @@
+// Package updater implements self-update functionality by downloading releases from GitHub.
 package updater
 
 import (
-	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
+// httpClient is used for all HTTP requests with a reasonable timeout.
+var httpClient = &http.Client{Timeout: 30 * time.Second}
+
+// UpdateGCNFCommand downloads and installs the latest release of gcnf from GitHub.
 func UpdateGCNFCommand(owner, repo string) {
 	updateURL := getLatestReleaseURL(owner, repo)
 	if updateURL == "" {
@@ -23,6 +27,7 @@ func UpdateGCNFCommand(owner, repo string) {
 		fmt.Printf("Failed to download gcnf: %v\n", err)
 		return
 	}
+	defer os.Remove(downloadPath)
 	installPath, err := installBinary()
 	if err != nil {
 		fmt.Printf("Failed to install gcnf: %v\n", err)
@@ -33,60 +38,85 @@ func UpdateGCNFCommand(owner, repo string) {
 		fmt.Printf("Failed to copy gcnf: %v\n", err)
 		return
 	}
-	os.Remove(downloadPath)
 	fmt.Printf("Update complete. You can now use the latest version of 'gcnf' at %s.\n", installPath)
 }
 
+// getLatestReleaseURL fetches the download URL for the current platform's binary from the latest GitHub release.
 func getLatestReleaseURL(owner, repo string) string {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
-	resp, err := http.Get(apiURL)
-	if err != nil || resp.StatusCode != 200 {
-		return ""
-	}
-	defer resp.Body.Close()
-	var result map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	resp, err := httpClient.Get(apiURL)
 	if err != nil {
 		return ""
 	}
-	assets := result["assets"].([]interface{})
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return ""
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return ""
+	}
+
+	assetsRaw, ok := result["assets"]
+	if !ok {
+		return ""
+	}
+	assets, ok := assetsRaw.([]interface{})
+	if !ok {
+		return ""
+	}
+
+	binaryName := getBinaryName()
 	for _, asset := range assets {
-		assetMap := asset.(map[string]interface{})
-		name := assetMap["name"].(string)
-		if name == getBinaryName() {
-			return assetMap["browser_download_url"].(string)
+		assetMap, ok := asset.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		name, ok := assetMap["name"].(string)
+		if !ok {
+			continue
+		}
+		if name == binaryName {
+			url, ok := assetMap["browser_download_url"].(string)
+			if !ok {
+				continue
+			}
+			return url
 		}
 	}
 	return ""
 }
 
+// getBinaryName returns the expected binary name for the current OS and architecture.
 func getBinaryName() string {
-	osName := runtime.GOOS
-	arch := runtime.GOARCH
-	if arch == "x86_64" {
-		arch = "amd64"
-	}
-	return fmt.Sprintf("gcnf-%s-%s", osName, arch)
+	return fmt.Sprintf("gcnf-%s-%s", runtime.GOOS, runtime.GOARCH)
 }
 
+// downloadBinary downloads a binary from the given URL to a temporary file.
 func downloadBinary(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil || resp.StatusCode != 200 {
-		return "", fmt.Errorf("failed to download binary")
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to download binary: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("failed to download binary: HTTP %d", resp.StatusCode)
+	}
+
 	tempFile, err := os.CreateTemp("", "gcnf-update.tmp")
 	if err != nil {
 		return "", err
 	}
 	defer tempFile.Close()
-	_, err = io.Copy(tempFile, resp.Body)
-	if err != nil {
+
+	if _, err := io.Copy(tempFile, resp.Body); err != nil {
 		return "", err
 	}
 	return tempFile.Name(), nil
 }
 
+// installBinary returns the target installation path for the gcnf binary.
 func installBinary() (string, error) {
 	installDir := "/usr/local/bin"
 	if runtime.GOOS == "windows" {
@@ -98,65 +128,17 @@ func installBinary() (string, error) {
 		installPath += ".exe"
 	}
 
-	// Make the binary executable
-	if runtime.GOOS != "windows" {
-		err := os.Chmod(installPath, 0755)
-		if err != nil {
-			return "", err
-		}
-	}
-
 	return installPath, nil
 }
 
-func checkErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
+// copyFile copies src to dst with executable permissions (0755).
 func copyFile(src string, dst string) error {
-	// Read all content of src to data, may cause OOM for a large file.
 	data, err := os.ReadFile(src)
-	checkErr(err)
-	// Write data to dst
-	err = os.WriteFile(dst, data, os.FileMode(0644))
-	checkErr(err)
-	return err
-}
-
-func unzip(src, dest string) error {
-	r, err := zip.OpenReader(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read source file: %w", err)
 	}
-	defer r.Close()
-	for _, f := range r.File {
-		fpath := filepath.Join(dest, f.Name)
-		if f.FileInfo().IsDir() {
-			err := os.MkdirAll(fpath, f.Mode())
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		if err = os.MkdirAll(filepath.Dir(fpath), f.Mode()); err != nil {
-			return err
-		}
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		if err != nil {
-			return err
-		}
+	if err := os.WriteFile(dst, data, 0755); err != nil {
+		return fmt.Errorf("failed to write destination file: %w", err)
 	}
 	return nil
 }

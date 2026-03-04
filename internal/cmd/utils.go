@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"log"
+
 	"gcnf/internal/config"
 	"gcnf/internal/utils"
-	"log"
 )
 
 func checkRequirements() {
@@ -11,9 +12,9 @@ func checkRequirements() {
 		log.Fatalf("No authentication method provided. Use 'gcnf login' or set %s.", config.EnvGoogleCredentialBase64)
 	}
 	if configs.GoogleSheetID == "" {
-		log.Fatalf("%s environment variable or --google_sheet_id parameter is not set.", config.EnvGoogleSheetID)
+		log.Fatalf("%s environment variable is not set. Use 'gcnf config --sheetId <ID>' to set it.", config.EnvGoogleSheetID)
 	}
 	if configs.ConfigFile == "" || configs.ConfigFile == "." {
-		log.Fatalf("%s environment variable or --config_file parameter is not set.", config.EnvStoreConfigFile)
+		log.Fatalf("%s environment variable is not set.", config.EnvStoreConfigFile)
 	}
 }
