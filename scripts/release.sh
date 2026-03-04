@@ -41,7 +41,7 @@ else
 fi
 
 # Optionally, you may want to update requirements or dependencies
-# This can be customized as needed for the Python project
+# This can be customized as needed for the Go project
 
 # Create a new branch for the release
 git checkout -b "release/$new_version"

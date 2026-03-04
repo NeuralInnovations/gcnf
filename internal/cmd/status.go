@@ -3,7 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"gcnf/internal/utils"
+
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +38,10 @@ func statusCommand(format string) {
 	}
 
 	if format == "json" {
-		data, _ := json.MarshalIndent(status, "", "  ")
+		data, err := json.MarshalIndent(status, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal status: %v", err)
+		}
 		fmt.Println(string(data))
 	} else {
 		utils.PrintYAML(status)

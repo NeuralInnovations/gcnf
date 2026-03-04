@@ -8,7 +8,6 @@ on:
 env:
   GCNF_GOOGLE_CREDENTIAL_BASE64: ${{ secrets.GCNF_GOOGLE_CREDENTIAL_BASE64 }}
   GCNF_GOOGLE_SHEET_ID: ${{ secrets.GCNF_GOOGLE_SHEET_ID }}
-  GCNF_GOOGLE_SHEET_NAME: ${{ secrets.GCNF_GOOGLE_SHEET_NAME }}
   GCNF_STORE_CONFIG_FILE: ./tmp_config.json
 
 jobs:
@@ -27,15 +26,17 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: "^1.23.2"
+          go-version: "^1.25.0"
       #--------------------------------------------------------------------
       - run: go version
       #--------------------------------------------------------------------
       # client_secret.json
       #--------------------------------------------------------------------
       - name: Client secrets
+        env:
+          CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          echo '${{ secrets.GOOGLE_CLIENT_SECRET }}' > ./client_secret.json
+          echo "$CLIENT_SECRET" > ./client_secret.json
       #--------------------------------------------------------------------
       - run: ./scripts/mod.download.sh
       #--------------------------------------------------------------------

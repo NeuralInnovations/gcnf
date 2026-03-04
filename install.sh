@@ -4,8 +4,6 @@
 OWNER="NeuralInnovations"
 REPOSITORY="gcnf"
 CPU_ARCH=$(arch)
-RETRY_COUNT=3
-RETRY_DELAY=5
 
 # Determine the current platform
 platform=""
@@ -34,27 +32,19 @@ filename="gcnf-$platform"
 
 download_url="https://github.com/$OWNER/$REPOSITORY/releases/latest/download/$filename"
 
-# Check if the download URL was found
-curl -L -o gcnf "$download_url" || {
-    echo "------------------------------"
-    echo "Error: Unable to find download URL for platform: $platform"
-    echo "------------------------------"
-    echo "Arch $CPU_ARCH"
-    echo "Download URL for platform: $platform not found, file name: $filename."
-    echo "Content of the latest release:"
-    echo "'"
-    echo "$release_info"
-    echo "'"
-    echo "Available platforms in the last releases:"
-    echo $("$release_info" | grep "browser_download_url")
-    echo "Please check the repository for available releases."
-    echo "------------------------------"
-    exit 1
-}
-
 # Download the binary
 echo "Downloading $filename..."
-curl -L -o gcnf "$download_url"
+if ! curl -fSL -o gcnf "$download_url"; then
+    echo "------------------------------"
+    echo "Error: Unable to download gcnf for platform: $platform"
+    echo "------------------------------"
+    echo "Arch: $CPU_ARCH"
+    echo "Download URL: $download_url"
+    echo "Please check the repository for available releases:"
+    echo "https://github.com/$OWNER/$REPOSITORY/releases"
+    echo "------------------------------"
+    exit 1
+fi
 
 # Make the binary executable (skipped on Windows)
 if [[ "$platform" != "windows" ]]; then
@@ -79,8 +69,6 @@ if [[ "$platform" == "windows" ]]; then
     if [[ ":$PATH:" != *":$install_dir:"* ]]; then
         echo "Adding $install_dir to PATH in .bashrc..."
         echo "export PATH=\$PATH:$install_dir" >> ~/.bashrc
-        # Reload .bashrc to update PATH in the current session
-        source ~/.bashrc
     fi
 fi
 
